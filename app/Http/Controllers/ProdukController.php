@@ -5,64 +5,35 @@ namespace App\Http\Controllers;
 use App\Models\KategoriProduk;
 use App\Models\Produk;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class ProdukController extends Controller
 {
     public function index(Request $request)
     {
         $search = $request->get('search');
-        $kategori_id = $request->get('kategori_produk_id');
         $status = $request->get('status');
+        $kategoriId = $request->get('kategori_produk_id');
 
-        $query = Produk::with('kategori');
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('nama_produk', 'like', "%{$search}%")
-                  ->orWhere('kode_produk', 'like', "%{$search}%")
-                  ->orWhere('deskripsi', 'like', "%{$search}%");
-            });
-        }
-
-        if ($kategori_id) {
-            $query->where('kategori_produk_id', $kategori_id);
-        }
-
-        if ($status) {
-            $query->where('status', $status);
-        }
-
-        $produk = $query->latest('produk_id')
+        $produk = Produk::with('kategori')
+            ->when($search, fn($q) => $q
+                ->where('nama_produk', 'like', "%{$search}%")
+                ->orWhere('kode_produk', 'like', "%{$search}%"))
+            ->when($status, fn($q) => $q->where('status', $status))
+            ->when($kategoriId, fn($q) => $q->where('kategori_produk_id', $kategoriId))
+            ->latest()
             ->paginate(10)
             ->withQueryString();
 
-        // Summary statistics
-        $totalProduk = Produk::count();
-        $totalStok = Produk::sum('stok');
-        $produkAktif = Produk::where('status', 'Aktif')->count();
-        $nilaiAset = Produk::select(DB::raw('SUM(harga_beli * stok) as total_nilai'))->value('total_nilai') ?? 0;
+        $kategoris = KategoriProduk::where('status', 'Aktif')->orderBy('nama_kategori')->get();
 
-        $kategoriList = KategoriProduk::orderBy('nama_kategori')->get();
-
-        return view('produk.index', compact(
-            'produk',
-            'search',
-            'kategori_id',
-            'status',
-            'totalProduk',
-            'totalStok',
-            'produkAktif',
-            'nilaiAset',
-            'kategoriList'
-        ));
+        return view('produk.index', compact('produk', 'search', 'status', 'kategoriId', 'kategoris'));
     }
 
     public function create()
     {
         $kode = $this->generateKode();
-        $kategoriList = KategoriProduk::where('status', 'Aktif')->orderBy('nama_kategori')->get();
-        return view('produk.create', compact('kode', 'kategoriList'));
+        $kategoris = KategoriProduk::where('status', 'Aktif')->orderBy('nama_kategori')->get();
+        return view('produk.create', compact('kode', 'kategoris'));
     }
 
     public function store(Request $request)
@@ -77,23 +48,10 @@ class ProdukController extends Controller
             'stok'               => ['required', 'integer', 'min:0'],
             'satuan'             => ['required', 'string', 'max:20'],
             'status'             => ['required', 'in:Aktif,Tidak Aktif'],
-        ], [
-            'kategori_produk_id.required' => 'Kategori produk wajib dipilih.',
-            'kategori_produk_id.exists'   => 'Kategori produk tidak valid.',
-            'kode_produk.required'        => 'Kode produk wajib diisi.',
-            'kode_produk.unique'          => 'Kode produk sudah digunakan.',
-            'nama_produk.required'        => 'Nama produk wajib diisi.',
-            'harga_beli.required'         => 'Harga beli wajib diisi.',
-            'harga_jual.required'         => 'Harga jual wajib diisi.',
-            'stok.required'               => 'Stok wajib diisi.',
-            'satuan.required'             => 'Satuan wajib diisi.',
-            'status.required'             => 'Status produk wajib dipilih.',
         ]);
 
         Produk::create($request->all());
-
-        return redirect()->route('produk.index')
-            ->with('success', 'Produk berhasil ditambahkan.');
+        return redirect()->route('produk.index')->with('success', 'Produk berhasil ditambahkan.');
     }
 
     public function show(Produk $produk)
@@ -104,8 +62,8 @@ class ProdukController extends Controller
 
     public function edit(Produk $produk)
     {
-        $kategoriList = KategoriProduk::orderBy('nama_kategori')->get();
-        return view('produk.edit', compact('produk', 'kategoriList'));
+        $kategoris = KategoriProduk::where('status', 'Aktif')->orderBy('nama_kategori')->get();
+        return view('produk.edit', compact('produk', 'kategoris'));
     }
 
     public function update(Request $request, Produk $produk)
@@ -120,31 +78,19 @@ class ProdukController extends Controller
             'stok'               => ['required', 'integer', 'min:0'],
             'satuan'             => ['required', 'string', 'max:20'],
             'status'             => ['required', 'in:Aktif,Tidak Aktif'],
-        ], [
-            'kategori_produk_id.required' => 'Kategori produk wajib dipilih.',
-            'kategori_produk_id.exists'   => 'Kategori produk tidak valid.',
-            'kode_produk.required'        => 'Kode produk wajib diisi.',
-            'kode_produk.unique'          => 'Kode produk sudah digunakan.',
-            'nama_produk.required'        => 'Nama produk wajib diisi.',
-            'harga_beli.required'         => 'Harga beli wajib diisi.',
-            'harga_jual.required'         => 'Harga jual wajib diisi.',
-            'stok.required'               => 'Stok wajib diisi.',
-            'satuan.required'             => 'Satuan wajib diisi.',
-            'status.required'             => 'Status produk wajib dipilih.',
         ]);
 
         $produk->update($request->all());
-
-        return redirect()->route('produk.index')
-            ->with('success', 'Data produk berhasil diperbarui.');
+        return redirect()->route('produk.index')->with('success', 'Produk berhasil diperbarui.');
     }
 
     public function destroy(Produk $produk)
     {
+        if ($produk->transaksi()->count() > 0) {
+            return back()->with('error', 'Produk tidak dapat dihapus karena memiliki transaksi terkait.');
+        }
         $produk->delete();
-
-        return redirect()->route('produk.index')
-            ->with('success', 'Produk berhasil dihapus.');
+        return redirect()->route('produk.index')->with('success', 'Produk berhasil dihapus.');
     }
 
     private function generateKode(): string

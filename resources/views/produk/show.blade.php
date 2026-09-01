@@ -1,117 +1,41 @@
 @extends('layouts.app')
-
-@section('title', 'Detail Produk - ' . $produk->nama_produk)
-@section('page-title', 'Detail Produk')
-
+@section('title','Detail Produk')
+@section('page-title','Detail Produk')
 @section('content')
-<div class="container-fluid p-0" style="max-width: 900px;">
-    <!-- Page Navigation -->
-    <div class="mb-3 d-flex justify-content-between align-items-center">
-        <a href="{{ route('produk.index') }}" class="text-decoration-none text-muted small fw-medium">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar Produk
-        </a>
-        <div class="d-flex gap-2">
-            <a href="{{ route('produk.edit', $produk->produk_id) }}" class="btn btn-sm btn-warning text-dark font-medium">
-                <i class="bi bi-pencil me-1"></i> Edit Produk
-            </a>
-        </div>
-    </div>
-
-    <!-- Product Detail Card -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-indigo-subtle text-indigo px-3 py-2 font-monospace fs-6" style="background-color: #e0e7ff; color: #4338ca;">
-                    {{ $produk->kode_produk }}
-                </span>
-                <h5 class="fw-bold mb-0 text-slate-800">{{ $produk->nama_produk }}</h5>
-            </div>
-            <div>
-                @if($produk->status == 'Aktif')
-                    <span class="badge badge-aktif px-3 py-2 rounded-pill"><i class="bi bi-dot"></i> Aktif</span>
-                @else
-                    <span class="badge badge-nonaktif px-3 py-2 rounded-pill"><i class="bi bi-dot"></i> Tidak Aktif</span>
-                @endif
-            </div>
+<div class="row justify-content-center"><div class="col-lg-8">
+    <nav aria-label="breadcrumb" class="mb-3"><ol class="breadcrumb mb-0"><li class="breadcrumb-item"><a href="{{ route('produk.index') }}" class="text-decoration-none text-primary">Produk</a></li><li class="breadcrumb-item active">{{ $produk->kode_produk }}</li></ol></nav>
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div><h6 class="mb-0 fw-bold">{{ $produk->nama_produk }}</h6><small class="text-muted">{{ $produk->kode_produk }}</small></div>
+            <a href="{{ route('produk.edit',$produk) }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>
         </div>
         <div class="card-body p-4">
-            <div class="row g-4">
-                <!-- Pricing & Stock Metrics -->
-                <div class="col-12">
-                    <div class="p-3 bg-light rounded-3 d-flex flex-wrap justify-content-around align-items-center text-center gap-3 border">
-                        <div>
-                            <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: .7rem;">Harga Beli (Modal)</small>
-                            <span class="fs-5 fw-bold text-slate-700">Rp {{ number_format($produk->harga_beli, 0, ',', '.') }}</span>
-                        </div>
-                        <div class="vr d-none d-md-block"></div>
-                        <div>
-                            <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: .7rem;">Harga Jual</small>
-                            <span class="fs-5 fw-bold text-indigo" style="color: #4f46e5;">Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</span>
-                        </div>
-                        <div class="vr d-none d-md-block"></div>
-                        <div>
-                            <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: .7rem;">Profit per Unit</small>
-                            @php $profit = $produk->harga_jual - $produk->harga_beli; @endphp
-                            <span class="fs-5 fw-bold {{ $profit >= 0 ? 'text-success' : 'text-danger' }}">
-                                Rp {{ number_format($profit, 0, ',', '.') }}
-                            </span>
-                        </div>
-                        <div class="vr d-none d-md-block"></div>
-                        <div>
-                            <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: .7rem;">Stok Saat Ini</small>
-                            <span class="fs-5 fw-bold {{ $produk->stok > 0 ? 'text-slate-800' : 'text-danger' }}">
-                                {{ number_format($produk->stok) }} {{ $produk->satuan }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Attributes Table -->
-                <div class="col-12 col-md-6">
-                    <h6 class="fw-bold text-slate-700 mb-3 border-bottom pb-2">Informasi Produk</h6>
-                    <table class="table table-borderless table-sm">
-                        <tr>
-                            <td class="text-muted" style="width: 140px;">Kategori</td>
-                            <td class="fw-semibold">: {{ $produk->kategori->nama_kategori ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">Kode Produk</td>
-                            <td class="fw-semibold font-monospace">: {{ $produk->kode_produk }}</td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">Satuan</td>
-                            <td class="fw-semibold">: {{ $produk->satuan }}</td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">Total Nilai Stok</td>
-                            <td class="fw-semibold text-success">: Rp {{ number_format($produk->harga_beli * $produk->stok, 0, ',', '.') }}</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <div class="col-12 col-md-6">
-                    <h6 class="fw-bold text-slate-700 mb-3 border-bottom pb-2">Informasi Sistem</h6>
-                    <table class="table table-borderless table-sm">
-                        <tr>
-                            <td class="text-muted" style="width: 140px;">Dibuat Pada</td>
-                            <td>: {{ $produk->created_at ? $produk->created_at->translatedFormat('d F Y, H:i') : '-' }}</td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">Terakhir Diubah</td>
-                            <td>: {{ $produk->updated_at ? $produk->updated_at->translatedFormat('d F Y, H:i') : '-' }}</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <!-- Description -->
-                <div class="col-12">
-                    <h6 class="fw-bold text-slate-700 mb-2 border-bottom pb-2">Deskripsi Produk</h6>
-                    <p class="text-slate-600 mb-0" style="white-space: pre-line;">
-                        {{ $produk->deskripsi ?: 'Tidak ada deskripsi untuk produk ini.' }}
-                    </p>
-                </div>
+            <div class="row g-3">
+                <div class="col-sm-6"><div class="p-3 rounded-3 bg-light"><div class="text-muted mb-1" style="font-size:.72rem;font-weight:600;">KODE PRODUK</div><div class="fw-semibold">{{ $produk->kode_produk }}</div></div></div>
+                <div class="col-sm-6"><div class="p-3 rounded-3 bg-light"><div class="text-muted mb-1" style="font-size:.72rem;font-weight:600;">KATEGORI</div><div class="fw-semibold">{{ $produk->kategori->nama_kategori ?? '—' }}</div></div></div>
+                <div class="col-sm-6"><div class="p-3 rounded-3 bg-light"><div class="text-muted mb-1" style="font-size:.72rem;font-weight:600;">HARGA BELI</div><div class="fw-semibold">Rp {{ number_format($produk->harga_beli, 0, ',', '.') }}</div></div></div>
+                <div class="col-sm-6"><div class="p-3 rounded-3 bg-light"><div class="text-muted mb-1" style="font-size:.72rem;font-weight:600;">HARGA JUAL</div><div class="fw-semibold text-success">Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</div></div></div>
+                <div class="col-sm-6"><div class="p-3 rounded-3 bg-light"><div class="text-muted mb-1" style="font-size:.72rem;font-weight:600;">STOK</div><div class="fw-semibold">{{ $produk->stok }} {{ $produk->satuan }}</div></div></div>
+                <div class="col-sm-6"><div class="p-3 rounded-3 bg-light"><div class="text-muted mb-1" style="font-size:.72rem;font-weight:600;">STATUS</div>
+                    <span class="badge {{ $produk->status === 'Aktif' ? 'badge-aktif' : 'badge-nonaktif' }} rounded-pill px-3">{{ $produk->status }}</span>
+                </div></div>
+                <div class="col-12"><div class="p-3 rounded-3 bg-light"><div class="text-muted mb-1" style="font-size:.72rem;font-weight:600;">DESKRIPSI</div><div class="fw-semibold">{{ $produk->deskripsi ?? '—' }}</div></div></div>
             </div>
         </div>
+        <div class="card-footer bg-white d-flex justify-content-end gap-2">
+            <a href="{{ route('produk.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+            <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalHapus" data-id="{{ $produk->produk_id }}" data-nama="{{ $produk->nama_produk }}"><i class="bi bi-trash me-1"></i>Hapus</button>
+        </div>
     </div>
-</div>
+</div></div>
+@include('partials.modal-hapus')
 @endsection
+@push('scripts')
+<script>
+    document.getElementById('modalHapus').addEventListener('show.bs.modal', e => {
+        const btn = e.relatedTarget;
+        document.getElementById('hapusNama').textContent = btn.dataset.nama;
+        document.getElementById('formHapus').action = `/produk/${btn.dataset.id}`;
+    });
+</script>
+@endpush
