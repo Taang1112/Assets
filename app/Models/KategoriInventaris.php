@@ -6,19 +6,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class KategoriProduk extends Model
+class KategoriInventaris extends Model
 {
     use HasFactory;
 
-    protected $table = 'kategori_produk';
-    protected $primaryKey = 'kategori_produk_id';
+    protected $table = 'kategori_inventaris';
+    protected $primaryKey = 'kategori_inventaris_id';
 
     protected $fillable = [
         'kode_kategori', 'nama_kategori', 'deskripsi', 'status',
     ];
 
-    public function produk(): HasMany
+    public function inventaris(): HasMany
     {
-        return $this->hasMany(Produk::class, 'kategori_produk_id', 'kategori_produk_id');
+        return $this->hasMany(Inventaris::class, 'kategori_inventaris_id', 'kategori_inventaris_id');
     }
 }
