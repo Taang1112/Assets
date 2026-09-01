@@ -150,6 +150,10 @@
     </div>
     <nav class="sidebar-nav">
         <div class="nav-label">Menu Utama</div>
+        <a href="{{ route('produk.index') }}"
+           class="sidebar-link {{ request()->routeIs('produk.*') ? 'active' : '' }}">
+            <i class="bi bi-box-seam-fill"></i> Data Produk
+        </a>
         <a href="{{ route('pelanggan.index') }}"
            class="sidebar-link {{ request()->routeIs('pelanggan.*') ? 'active' : '' }}">
             <i class="bi bi-people-fill"></i> Data Pelanggan
