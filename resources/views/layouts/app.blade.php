@@ -581,6 +581,10 @@
 
     <nav class="sidebar-nav">
         <div class="nav-section-title">UTAMA</div>
+        <a href="{{ route('dashboard') }}"
+           class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
         <a href="{{ route('transaksi.index') }}"
            class="sidebar-link {{ request()->routeIs('transaksi.*') ? 'active' : '' }}">
             <i class="bi bi-receipt-cutoff"></i> Data Transaksi
@@ -599,6 +603,10 @@
            class="sidebar-link {{ request()->routeIs('karyawan.*') ? 'active' : '' }}">
             <i class="bi bi-person-badge-fill"></i> Karyawan
         </a>
+        <a href="{{ route('supplier.index') }}"
+           class="sidebar-link {{ request()->routeIs('supplier.*') ? 'active' : '' }}">
+            <i class="bi bi-truck"></i> Supplier
+        </a>
         <a href="{{ route('inventaris.index') }}"
            class="sidebar-link {{ request()->routeIs('inventaris.*') ? 'active' : '' }}">
             <i class="bi bi-archive-fill"></i> Inventaris
@@ -612,6 +620,12 @@
         <a href="{{ route('kategori-inventaris.index') }}"
            class="sidebar-link {{ request()->routeIs('kategori-inventaris.*') ? 'active' : '' }}">
             <i class="bi bi-tag-fill"></i> Kat. Inventaris
+        </a>
+
+        <div class="nav-section-title">PERSEDIAAN</div>
+        <a href="{{ route('stok.index') }}"
+           class="sidebar-link {{ request()->routeIs('stok.*') ? 'active' : '' }}">
+            <i class="bi bi-clock-history"></i> Riwayat Stok
         </a>
     </nav>
 
