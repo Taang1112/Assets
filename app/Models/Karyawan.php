@@ -27,4 +27,9 @@ class Karyawan extends Model
     {
         return $this->hasMany(Transaksi::class, 'karyawan_id', 'karyawan_id');
     }
+
+    public function stok(): HasMany
+    {
+        return $this->hasMany(Stok::class, 'karyawan_id', 'karyawan_id');
+    }
 }

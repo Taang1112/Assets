@@ -33,4 +33,14 @@ class Produk extends Model
     {
         return $this->hasMany(Transaksi::class, 'produk_id', 'produk_id');
     }
+
+    public function stok(): HasMany
+    {
+        return $this->hasMany(Stok::class, 'produk_id', 'produk_id');
+    }
+
+    public function transaksiBatch(): HasMany
+    {
+        return $this->hasMany(TransaksiBatch::class, 'produk_id', 'produk_id');
+    }
 }

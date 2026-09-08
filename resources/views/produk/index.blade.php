@@ -115,6 +115,7 @@
                 </td>
                 <td class="text-center pe-3 pe-sm-4">
                     <div class="d-flex justify-content-center gap-1">
+                        <a href="{{ route('stok.create', ['produk_id' => $item->produk_id]) }}" class="btn btn-icon btn-outline-success" title="Restock / Tambah Stok"><i class="bi bi-box-arrow-in-down"></i></a>
                         <a href="{{ route('produk.show', $item) }}" class="btn btn-icon btn-outline-secondary" title="Detail"><i class="bi bi-eye"></i></a>
                         <a href="{{ route('produk.edit', $item) }}" class="btn btn-icon btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
                         <button class="btn btn-icon btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalHapus" data-id="{{ $item->produk_id }}" data-nama="{{ $item->nama_produk }}" title="Hapus"><i class="bi bi-trash"></i></button>

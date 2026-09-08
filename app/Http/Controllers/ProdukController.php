@@ -57,7 +57,16 @@ class ProdukController extends Controller
     public function show(Produk $produk)
     {
         $produk->load('kategori');
-        return view('produk.show', compact('produk'));
+        $activeBatches = $produk->stok()
+            ->with(['supplier', 'karyawan'])
+            ->where('stok_tersisa', '>', 0)
+            ->orderBy('tanggal_masuk', 'asc')
+            ->orderBy('stok_id', 'asc')
+            ->get();
+
+        $totalStokAktif = $activeBatches->sum('stok_tersisa');
+
+        return view('produk.show', compact('produk', 'activeBatches', 'totalStokAktif'));
     }
 
     public function edit(Produk $produk)
