@@ -38,9 +38,8 @@ class ProdukController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'kategori_produk_id' => ['required', 'exists:kategori_produk,kategori_produk_id'],
-            'kode_produk'        => ['required', 'string', 'max:20', 'unique:produk,kode_produk'],
             'nama_produk'        => ['required', 'string', 'max:100'],
             'deskripsi'          => ['nullable', 'string'],
             'harga_beli'         => ['required', 'numeric', 'min:0'],
@@ -50,7 +49,9 @@ class ProdukController extends Controller
             'status'             => ['required', 'in:Aktif,Tidak Aktif'],
         ]);
 
-        Produk::create($request->all());
+        $validated['kode_produk'] = $this->generateKode();
+
+        Produk::create($validated);
         return redirect()->route('produk.index')->with('success', 'Produk berhasil ditambahkan.');
     }
 
@@ -77,9 +78,8 @@ class ProdukController extends Controller
 
     public function update(Request $request, Produk $produk)
     {
-        $request->validate([
+        $validated = $request->validate([
             'kategori_produk_id' => ['required', 'exists:kategori_produk,kategori_produk_id'],
-            'kode_produk'        => ['required', 'string', 'max:20', 'unique:produk,kode_produk,' . $produk->produk_id . ',produk_id'],
             'nama_produk'        => ['required', 'string', 'max:100'],
             'deskripsi'          => ['nullable', 'string'],
             'harga_beli'         => ['required', 'numeric', 'min:0'],
@@ -89,7 +89,8 @@ class ProdukController extends Controller
             'status'             => ['required', 'in:Aktif,Tidak Aktif'],
         ]);
 
-        $produk->update($request->all());
+        // Explicitly exclude kode_produk to guarantee code immutability
+        $produk->update($validated);
         return redirect()->route('produk.index')->with('success', 'Produk berhasil diperbarui.');
     }
 

@@ -38,8 +38,7 @@ class SupplierController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'kode_supplier'   => ['required', 'string', 'max:20', 'unique:supplier,kode_supplier'],
+        $validated = $request->validate([
             'nama_supplier'   => ['required', 'string', 'max:100'],
             'nama_perusahaan' => ['nullable', 'string', 'max:100'],
             'email'           => ['nullable', 'email', 'max:100', 'unique:supplier,email'],
@@ -47,15 +46,15 @@ class SupplierController extends Controller
             'alamat'          => ['nullable', 'string'],
             'status'          => ['required', 'in:Aktif,Tidak Aktif'],
         ], [
-            'kode_supplier.required' => 'Kode supplier wajib diisi.',
-            'kode_supplier.unique'   => 'Kode supplier sudah terdaftar.',
             'nama_supplier.required' => 'Nama supplier wajib diisi.',
             'email.email'            => 'Format email tidak valid.',
             'email.unique'           => 'Email sudah terdaftar.',
             'status.required'        => 'Status wajib dipilih.',
         ]);
 
-        Supplier::create($request->all());
+        $validated['kode_supplier'] = $this->generateKode();
+
+        Supplier::create($validated);
 
         return redirect()->route('supplier.index')
             ->with('success', 'Supplier berhasil ditambahkan.');
@@ -74,8 +73,7 @@ class SupplierController extends Controller
 
     public function update(Request $request, Supplier $supplier)
     {
-        $request->validate([
-            'kode_supplier'   => ['required', 'string', 'max:20', 'unique:supplier,kode_supplier,' . $supplier->supplier_id . ',supplier_id'],
+        $validated = $request->validate([
             'nama_supplier'   => ['required', 'string', 'max:100'],
             'nama_perusahaan' => ['nullable', 'string', 'max:100'],
             'email'           => ['nullable', 'email', 'max:100', 'unique:supplier,email,' . $supplier->supplier_id . ',supplier_id'],
@@ -83,15 +81,14 @@ class SupplierController extends Controller
             'alamat'          => ['nullable', 'string'],
             'status'          => ['required', 'in:Aktif,Tidak Aktif'],
         ], [
-            'kode_supplier.required' => 'Kode supplier wajib diisi.',
-            'kode_supplier.unique'   => 'Kode supplier sudah terdaftar.',
             'nama_supplier.required' => 'Nama supplier wajib diisi.',
             'email.email'            => 'Format email tidak valid.',
             'email.unique'           => 'Email sudah terdaftar.',
             'status.required'        => 'Status wajib dipilih.',
         ]);
 
-        $supplier->update($request->all());
+        // Explicitly exclude kode_supplier to guarantee code immutability
+        $supplier->update($validated);
 
         return redirect()->route('supplier.index')
             ->with('success', 'Data supplier berhasil diperbarui.');
