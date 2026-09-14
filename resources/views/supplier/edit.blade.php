@@ -37,15 +37,12 @@
                     <div class="row g-3">
                         {{-- Kode Supplier --}}
                         <div class="col-sm-6">
-                            <label for="kode_supplier" class="form-label">
-                                Kode Supplier <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" id="kode_supplier" name="kode_supplier"
-                                   class="form-control @error('kode_supplier') is-invalid @enderror"
-                                   value="{{ old('kode_supplier', $supplier->kode_supplier) }}" required>
-                            @error('kode_supplier')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <label class="form-label">Kode Supplier</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-light" value="{{ $supplier->kode_supplier }}" readonly>
+                                <span class="input-group-text bg-light text-muted"><i class="bi bi-lock-fill"></i></span>
+                            </div>
+                            <small class="text-muted">Kode bersifat permanen &amp; tidak dapat diubah.</small>
                         </div>
 
                         {{-- Status --}}

@@ -599,45 +599,69 @@
            class="sidebar-link {{ request()->routeIs('pelanggan.*') ? 'active' : '' }}">
             <i class="bi bi-people-fill"></i> Pelanggan
         </a>
-        <a href="{{ route('karyawan.index') }}"
-           class="sidebar-link {{ request()->routeIs('karyawan.*') ? 'active' : '' }}">
-            <i class="bi bi-person-badge-fill"></i> Karyawan
-        </a>
+        @if(auth()->check() && auth()->user()->isAdmin())
+            <a href="{{ route('karyawan.index') }}"
+               class="sidebar-link {{ request()->routeIs('karyawan.*') ? 'active' : '' }}">
+                <i class="bi bi-person-badge-fill"></i> Karyawan
+            </a>
+        @endif
         <a href="{{ route('supplier.index') }}"
            class="sidebar-link {{ request()->routeIs('supplier.*') ? 'active' : '' }}">
             <i class="bi bi-truck"></i> Supplier
         </a>
-        <a href="{{ route('inventaris.index') }}"
-           class="sidebar-link {{ request()->routeIs('inventaris.*') ? 'active' : '' }}">
-            <i class="bi bi-archive-fill"></i> Inventaris
-        </a>
+        @if(auth()->check() && auth()->user()->isAdmin())
+            <a href="{{ route('inventaris.index') }}"
+               class="sidebar-link {{ request()->routeIs('inventaris.*') ? 'active' : '' }}">
+                <i class="bi bi-archive-fill"></i> Inventaris
+            </a>
+        @endif
 
-        <div class="nav-section-title">KATEGORI</div>
-        <a href="{{ route('kategori-produk.index') }}"
-           class="sidebar-link {{ request()->routeIs('kategori-produk.*') ? 'active' : '' }}">
-            <i class="bi bi-tags-fill"></i> Kat. Produk
-        </a>
-        <a href="{{ route('kategori-inventaris.index') }}"
-           class="sidebar-link {{ request()->routeIs('kategori-inventaris.*') ? 'active' : '' }}">
-            <i class="bi bi-tag-fill"></i> Kat. Inventaris
-        </a>
+        @if(auth()->check() && auth()->user()->isAdmin())
+            <div class="nav-section-title">KATEGORI</div>
+            <a href="{{ route('kategori-produk.index') }}"
+               class="sidebar-link {{ request()->routeIs('kategori-produk.*') ? 'active' : '' }}">
+                <i class="bi bi-tags-fill"></i> Kat. Produk
+            </a>
+            <a href="{{ route('kategori-inventaris.index') }}"
+               class="sidebar-link {{ request()->routeIs('kategori-inventaris.*') ? 'active' : '' }}">
+                <i class="bi bi-tag-fill"></i> Kat. Inventaris
+            </a>
+        @endif
 
         <div class="nav-section-title">PERSEDIAAN</div>
         <a href="{{ route('stok.index') }}"
            class="sidebar-link {{ request()->routeIs('stok.*') ? 'active' : '' }}">
             <i class="bi bi-clock-history"></i> Riwayat Stok
         </a>
+
+        @if(auth()->check() && auth()->user()->isAdmin())
+            <div class="nav-section-title">PENGATURAN</div>
+            <a href="{{ route('users.index') }}"
+               class="sidebar-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                <i class="bi bi-shield-lock-fill"></i> User Management
+            </a>
+        @endif
     </nav>
 
     <div class="sidebar-footer">
-        <div class="d-flex align-items-center gap-2">
-            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width:32px;height:32px;font-size:0.78rem;">
-                AC
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2 overflow-hidden">
+                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width:34px;height:34px;font-size:0.8rem; background: var(--primary-gradient) !important;">
+                    {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 2)) }}
+                </div>
+                <div class="overflow-hidden">
+                    <div class="text-white fw-bold text-truncate" style="font-size:0.8rem;">{{ auth()->user()->name ?? 'User' }}</div>
+                    <small class="badge {{ auth()->user() && auth()->user()->isAdmin() ? 'bg-primary' : 'bg-info' }}" style="font-size:0.6rem; padding: 2px 6px;">
+                        {{ ucfirst(auth()->user()->role ?? 'Guest') }}
+                    </small>
+                </div>
             </div>
-            <div>
-                <div class="text-white fw-bold" style="font-size:0.78rem;">Administrator</div>
-                <small class="text-secondary" style="font-size:0.65rem;">Assets Collab v1.0</small>
-            </div>
+            <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-icon btn-outline-light btn-sm text-secondary border-0" title="Logout">
+                    <i class="bi bi-box-arrow-right fs-6"></i>
+                </button>
+            </form>
         </div>
     </div>
 </aside>
@@ -650,8 +674,21 @@
             </button>
             <span class="topbar-title text-truncate">@yield('page-title', 'Dashboard')</span>
         </div>
-        <div class="status-pill flex-shrink-0">
-            <span class="status-dot"></span> <span class="d-none d-sm-inline">System </span>Active
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-none d-sm-flex align-items-center gap-2">
+                <span class="badge {{ auth()->user() && auth()->user()->isAdmin() ? 'bg-indigo text-white' : 'bg-info text-dark' }}" style="font-size:0.75rem; padding: 0.35rem 0.65rem; border-radius: 8px;">
+                    <i class="bi bi-person-badge me-1"></i>{{ auth()->user()->name ?? 'User' }} ({{ ucfirst(auth()->user()->role ?? '') }})
+                </span>
+            </div>
+            <div class="status-pill flex-shrink-0">
+                <span class="status-dot"></span> <span class="d-none d-sm-inline">System </span>Active
+            </div>
+            <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" style="border-radius: 8px;">
+                    <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Logout</span>
+                </button>
+            </form>
         </div>
     </header>
 

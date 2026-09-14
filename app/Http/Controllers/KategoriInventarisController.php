@@ -29,14 +29,15 @@ class KategoriInventarisController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'kode_kategori' => ['required', 'string', 'max:20', 'unique:kategori_inventaris,kode_kategori'],
+        $validated = $request->validate([
             'nama_kategori' => ['required', 'string', 'max:100'],
             'deskripsi'     => ['nullable', 'string'],
             'status'        => ['required', 'in:Aktif,Tidak Aktif'],
         ]);
 
-        KategoriInventaris::create($request->all());
+        $validated['kode_kategori'] = $this->generateKode();
+
+        KategoriInventaris::create($validated);
         return redirect()->route('kategori-inventaris.index')->with('success', 'Kategori inventaris berhasil ditambahkan.');
     }
 
@@ -53,14 +54,14 @@ class KategoriInventarisController extends Controller
 
     public function update(Request $request, KategoriInventaris $kategoriInventaris)
     {
-        $request->validate([
-            'kode_kategori' => ['required', 'string', 'max:20', 'unique:kategori_inventaris,kode_kategori,' . $kategoriInventaris->kategori_inventaris_id . ',kategori_inventaris_id'],
+        $validated = $request->validate([
             'nama_kategori' => ['required', 'string', 'max:100'],
             'deskripsi'     => ['nullable', 'string'],
             'status'        => ['required', 'in:Aktif,Tidak Aktif'],
         ]);
 
-        $kategoriInventaris->update($request->all());
+        // Explicitly exclude kode_kategori to guarantee code immutability
+        $kategoriInventaris->update($validated);
         return redirect()->route('kategori-inventaris.index')->with('success', 'Kategori inventaris berhasil diperbarui.');
     }
 

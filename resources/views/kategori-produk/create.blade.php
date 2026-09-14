@@ -10,9 +10,12 @@
             @csrf
             <div class="row g-3">
                 <div class="col-sm-6">
-                    <label class="form-label">Kode Kategori <span class="text-danger">*</span></label>
-                    <input type="text" name="kode_kategori" class="form-control @error('kode_kategori') is-invalid @enderror" value="{{ old('kode_kategori', $kode) }}" required>
-                    @error('kode_kategori')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <label class="form-label">Kode Kategori</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-light" value="{{ $kode }} (Otomatis)" readonly disabled>
+                        <span class="input-group-text bg-light text-muted"><i class="bi bi-magic"></i></span>
+                    </div>
+                    <small class="text-muted">Kode dibuat otomatis oleh sistem saat disimpan.</small>
                 </div>
                 <div class="col-sm-6">
                     <label class="form-label">Status <span class="text-danger">*</span></label>

@@ -44,11 +44,10 @@ class TransaksiController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'produk_id'          => ['required', 'exists:produk,produk_id'],
             'pelanggan_id'       => ['required', 'exists:pelanggan,pelanggan_id'],
             'karyawan_id'        => ['required', 'exists:karyawan,karyawan_id'],
-            'kode_transaksi'     => ['required', 'string', 'max:30', 'unique:transaksi,kode_transaksi'],
             'tanggal_transaksi'  => ['required', 'date'],
             'jumlah'             => ['required', 'integer', 'min:1'],
             'harga_satuan'       => ['required', 'numeric', 'min:0'],
@@ -58,8 +57,9 @@ class TransaksiController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($request) {
-                $transaksi = Transaksi::create($request->all());
+            DB::transaction(function () use ($validated) {
+                $validated['kode_transaksi'] = $this->generateKode();
+                $transaksi = Transaksi::create($validated);
 
                 if ($transaksi->status === 'Selesai') {
                     $this->processFifoSales($transaksi);
@@ -88,11 +88,10 @@ class TransaksiController extends Controller
 
     public function update(Request $request, Transaksi $transaksi)
     {
-        $request->validate([
+        $validated = $request->validate([
             'produk_id'          => ['required', 'exists:produk,produk_id'],
             'pelanggan_id'       => ['required', 'exists:pelanggan,pelanggan_id'],
             'karyawan_id'        => ['required', 'exists:karyawan,karyawan_id'],
-            'kode_transaksi'     => ['required', 'string', 'max:30', 'unique:transaksi,kode_transaksi,' . $transaksi->transaksi_id . ',transaksi_id'],
             'tanggal_transaksi'  => ['required', 'date'],
             'jumlah'             => ['required', 'integer', 'min:1'],
             'harga_satuan'       => ['required', 'numeric', 'min:0'],
@@ -102,16 +101,17 @@ class TransaksiController extends Controller
         ]);
 
         $oldStatus = $transaksi->status;
-        $newStatus = $request->status;
+        $newStatus = $validated['status'];
 
         try {
-            DB::transaction(function () use ($request, $transaksi, $oldStatus, $newStatus) {
+            DB::transaction(function () use ($validated, $transaksi, $oldStatus, $newStatus) {
                 // Revert previous FIFO allocation if transaction was previously Selesai
                 if ($oldStatus === 'Selesai') {
                     $this->revertFifoSales($transaksi);
                 }
 
-                $transaksi->update($request->all());
+                // Explicitly exclude kode_transaksi to guarantee code immutability
+                $transaksi->update($validated);
 
                 // Process new FIFO allocation if updated status is Selesai
                 if ($newStatus === 'Selesai') {

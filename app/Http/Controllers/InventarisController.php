@@ -40,9 +40,8 @@ class InventarisController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'kategori_inventaris_id' => ['required', 'exists:kategori_inventaris,kategori_inventaris_id'],
-            'kode_inventaris'        => ['required', 'string', 'max:20', 'unique:inventaris,kode_inventaris'],
             'nama_inventaris'        => ['required', 'string', 'max:100'],
             'jumlah'                 => ['required', 'integer', 'min:1'],
             'kondisi'                => ['required', 'in:Baik,Rusak Ringan,Rusak Berat'],
@@ -52,7 +51,9 @@ class InventarisController extends Controller
             'status'                 => ['required', 'in:Tersedia,Dipakai,Dipinjam,Dihapus'],
         ]);
 
-        Inventaris::create($request->all());
+        $validated['kode_inventaris'] = $this->generateKode();
+
+        Inventaris::create($validated);
         return redirect()->route('inventaris.index')->with('success', 'Inventaris berhasil ditambahkan.');
     }
 
@@ -70,9 +71,8 @@ class InventarisController extends Controller
 
     public function update(Request $request, Inventaris $inventaris)
     {
-        $request->validate([
+        $validated = $request->validate([
             'kategori_inventaris_id' => ['required', 'exists:kategori_inventaris,kategori_inventaris_id'],
-            'kode_inventaris'        => ['required', 'string', 'max:20', 'unique:inventaris,kode_inventaris,' . $inventaris->inventaris_id . ',inventaris_id'],
             'nama_inventaris'        => ['required', 'string', 'max:100'],
             'jumlah'                 => ['required', 'integer', 'min:1'],
             'kondisi'                => ['required', 'in:Baik,Rusak Ringan,Rusak Berat'],
@@ -82,7 +82,8 @@ class InventarisController extends Controller
             'status'                 => ['required', 'in:Tersedia,Dipakai,Dipinjam,Dihapus'],
         ]);
 
-        $inventaris->update($request->all());
+        // Explicitly exclude kode_inventaris to guarantee code immutability
+        $inventaris->update($validated);
         return redirect()->route('inventaris.index')->with('success', 'Inventaris berhasil diperbarui.');
     }
 

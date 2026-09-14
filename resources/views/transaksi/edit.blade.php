@@ -10,9 +10,12 @@
             @csrf @method('PUT')
             <div class="row g-3">
                 <div class="col-sm-6">
-                    <label class="form-label">Kode Transaksi <span class="text-danger">*</span></label>
-                    <input type="text" name="kode_transaksi" class="form-control @error('kode_transaksi') is-invalid @enderror" value="{{ old('kode_transaksi', $transaksi->kode_transaksi) }}" required>
-                    @error('kode_transaksi')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <label class="form-label">Kode Transaksi</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-light" value="{{ $transaksi->kode_transaksi }}" readonly>
+                        <span class="input-group-text bg-light text-muted"><i class="bi bi-lock-fill"></i></span>
+                    </div>
+                    <small class="text-muted">Kode transaksi bersifat permanen &amp; tidak dapat diubah.</small>
                 </div>
                 <div class="col-sm-6">
                     <label class="form-label">Tanggal & Waktu Transaksi <span class="text-danger">*</span></label>

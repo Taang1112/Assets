@@ -37,8 +37,7 @@ class PelangganController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'kode_pelanggan' => ['required', 'string', 'max:20', 'unique:pelanggan,kode_pelanggan'],
+        $validated = $request->validate([
             'nama_pelanggan' => ['required', 'string', 'max:100'],
             'email'          => ['nullable', 'email', 'max:100'],
             'no_telepon'     => ['required', 'string', 'max:20'],
@@ -46,14 +45,14 @@ class PelangganController extends Controller
             'tanggal_daftar' => ['required', 'date'],
             'status'         => ['required', 'in:Aktif,Tidak Aktif'],
         ], [
-            'kode_pelanggan.required'  => 'Kode pelanggan wajib diisi.',
-            'kode_pelanggan.unique'    => 'Kode pelanggan sudah digunakan.',
             'nama_pelanggan.required'  => 'Nama pelanggan wajib diisi.',
             'no_telepon.required'      => 'Nomor telepon wajib diisi.',
             'tanggal_daftar.required'  => 'Tanggal daftar wajib diisi.',
         ]);
 
-        Pelanggan::create($request->all());
+        $validated['kode_pelanggan'] = $this->generateKode();
+
+        Pelanggan::create($validated);
 
         return redirect()->route('pelanggan.index')
             ->with('success', 'Pelanggan berhasil ditambahkan.');
@@ -71,8 +70,7 @@ class PelangganController extends Controller
 
     public function update(Request $request, Pelanggan $pelanggan)
     {
-        $request->validate([
-            'kode_pelanggan' => ['required', 'string', 'max:20', 'unique:pelanggan,kode_pelanggan,' . $pelanggan->pelanggan_id . ',pelanggan_id'],
+        $validated = $request->validate([
             'nama_pelanggan' => ['required', 'string', 'max:100'],
             'email'          => ['nullable', 'email', 'max:100'],
             'no_telepon'     => ['required', 'string', 'max:20'],
@@ -80,14 +78,13 @@ class PelangganController extends Controller
             'tanggal_daftar' => ['required', 'date'],
             'status'         => ['required', 'in:Aktif,Tidak Aktif'],
         ], [
-            'kode_pelanggan.required'  => 'Kode pelanggan wajib diisi.',
-            'kode_pelanggan.unique'    => 'Kode pelanggan sudah digunakan.',
             'nama_pelanggan.required'  => 'Nama pelanggan wajib diisi.',
             'no_telepon.required'      => 'Nomor telepon wajib diisi.',
             'tanggal_daftar.required'  => 'Tanggal daftar wajib diisi.',
         ]);
 
-        $pelanggan->update($request->all());
+        // Explicitly exclude kode_pelanggan to guarantee code immutability
+        $pelanggan->update($validated);
 
         return redirect()->route('pelanggan.index')
             ->with('success', 'Data pelanggan berhasil diperbarui.');

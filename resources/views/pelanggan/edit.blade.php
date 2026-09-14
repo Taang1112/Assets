@@ -44,15 +44,12 @@
                     <div class="row g-3">
                         {{-- Kode Pelanggan --}}
                         <div class="col-sm-6">
-                            <label for="kode_pelanggan" class="form-label">
-                                Kode Pelanggan <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" id="kode_pelanggan" name="kode_pelanggan"
-                                   class="form-control @error('kode_pelanggan') is-invalid @enderror"
-                                   value="{{ old('kode_pelanggan', $pelanggan->kode_pelanggan) }}" required>
-                            @error('kode_pelanggan')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <label class="form-label">Kode Pelanggan</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-light" value="{{ $pelanggan->kode_pelanggan }}" readonly>
+                                <span class="input-group-text bg-light text-muted"><i class="bi bi-lock-fill"></i></span>
+                            </div>
+                            <small class="text-muted">Kode bersifat permanen &amp; tidak dapat diubah.</small>
                         </div>
 
                         {{-- Status --}}

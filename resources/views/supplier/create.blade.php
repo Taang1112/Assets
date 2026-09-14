@@ -36,17 +36,12 @@
                     <div class="row g-3">
                         {{-- Kode Supplier --}}
                         <div class="col-sm-6">
-                            <label for="kode_supplier" class="form-label">
-                                Kode Supplier <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" id="kode_supplier" name="kode_supplier"
-                                   class="form-control @error('kode_supplier') is-invalid @enderror"
-                                   value="{{ old('kode_supplier', $kode) }}"
-                                   placeholder="SPL-00001" required>
-                            @error('kode_supplier')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <div class="form-text">Kode unik untuk supplier.</div>
+                            <label class="form-label">Kode Supplier</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-light" value="{{ $kode }} (Otomatis)" readonly disabled>
+                                <span class="input-group-text bg-light text-muted"><i class="bi bi-magic"></i></span>
+                            </div>
+                            <small class="text-muted">Kode dibuat otomatis oleh sistem saat disimpan.</small>
                         </div>
 
                         {{-- Status --}}
