@@ -47,32 +47,57 @@
                     <select id="produkSelect" name="produk_id" class="form-select @error('produk_id') is-invalid @enderror" required>
                         <option value="">— Pilih Produk —</option>
                         @foreach($produk as $pr)
-                            <option value="{{ $pr->produk_id }}" data-harga="{{ $pr->harga_jual }}" {{ old('produk_id', $transaksi->produk_id) == $pr->produk_id ? 'selected' : '' }}>{{ $pr->nama_produk }} — Rp {{ number_format($pr->harga_jual, 0, ',', '.') }}</option>
+                            @php
+                                $batches = $pr->fifoBatches ?? collect();
+                                $totalStokActive = $batches->sum('qty');
+                                $firstBatch = $batches->first();
+                                $refHarga = $firstBatch ? $firstBatch['harga_jual'] : $pr->harga_jual;
+                            @endphp
+                            <option value="{{ $pr->produk_id }}"
+                                    data-stok="{{ $totalStokActive }}"
+                                    data-batches="{{ json_encode($batches->toArray()) }}"
+                                    {{ old('produk_id', $transaksi->produk_id) == $pr->produk_id ? 'selected' : '' }}>
+                                {{ $pr->nama_produk }} — Stok Active: {{ $totalStokActive }} {{ $pr->satuan }} (Batch awal: Rp {{ number_format($refHarga, 0, ',', '.') }})
+                            </option>
                         @endforeach
                     </select>
                     @error('produk_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
+
                 <div class="col-sm-4">
                     <label class="form-label">Jumlah <span class="text-danger">*</span></label>
                     <input type="number" id="jumlahInput" name="jumlah" class="form-control @error('jumlah') is-invalid @enderror" value="{{ old('jumlah', $transaksi->jumlah) }}" min="1" required>
                     @error('jumlah')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-sm-4">
-                    <label class="form-label">Harga Satuan <span class="text-danger">*</span></label>
+                    <label class="form-label">Harga Satuan (First Batch) <span class="text-danger">*</span></label>
                     <div class="input-group">
-                        <span class="input-group-text">Rp</span>
-                        <input type="number" id="hargaInput" name="harga_satuan" step="100" class="form-control @error('harga_satuan') is-invalid @enderror" value="{{ old('harga_satuan', $transaksi->harga_satuan) }}" required>
+                        <span class="input-group-text bg-light text-muted"><i class="bi bi-lock-fill"></i> Rp</span>
+                        <input type="number" id="hargaInput" name="harga_satuan" step="100" class="form-control bg-light" value="{{ old('harga_satuan', $transaksi->harga_satuan) }}" readonly required>
                     </div>
-                    @error('harga_satuan')<div class="text-danger mt-1" style="font-size:.78rem;">{{ $message }}</div>@enderror
+                    <small class="text-muted" style="font-size:.75rem;">Batch FIFO pertama.</small>
                 </div>
                 <div class="col-sm-4">
-                    <label class="form-label">Total Harga <span class="text-danger">*</span></label>
+                    <label class="form-label">Total Harga FIFO <span class="text-danger">*</span></label>
                     <div class="input-group">
-                        <span class="input-group-text">Rp</span>
-                        <input type="number" id="totalInput" name="total_harga" step="100" class="form-control @error('total_harga') is-invalid @enderror" value="{{ old('total_harga', $transaksi->total_harga) }}" required readonly>
+                        <span class="input-group-text bg-light text-muted"><i class="bi bi-lock-fill"></i> Rp</span>
+                        <input type="number" id="totalInput" name="total_harga" step="100" class="form-control bg-light" value="{{ old('total_harga', $transaksi->total_harga) }}" readonly required>
                     </div>
-                    @error('total_harga')<div class="text-danger mt-1" style="font-size:.78rem;">{{ $message }}</div>@enderror
+                    <small class="text-muted" style="font-size:.75rem;">Total seluruh batch.</small>
                 </div>
+
+                <div class="col-12">
+                    <div class="alert alert-info py-2 px-3 mb-0 d-flex align-items-center gap-2" style="font-size:0.85rem;">
+                        <i class="bi bi-lock-fill fs-5"></i>
+                        <div>
+                            <strong>Catatan FIFO Stock Layer:</strong>
+                            Harga jual otomatis mengikuti harga batch FIFO dan tidak dapat diubah oleh Petugas.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12" id="fifoNoticeContainer" style="display:none;"></div>
+
                 <div class="col-sm-6">
                     <label class="form-label">Metode Pembayaran <span class="text-danger">*</span></label>
                     <select name="metode_pembayaran" class="form-select @error('metode_pembayaran') is-invalid @enderror" required>
@@ -108,23 +133,89 @@
     const jumlahInput = document.getElementById('jumlahInput');
     const hargaInput = document.getElementById('hargaInput');
     const totalInput = document.getElementById('totalInput');
+    const fifoNoticeContainer = document.getElementById('fifoNoticeContainer');
 
-    function hitungTotal() {
-        const qty = parseFloat(jumlahInput.value) || 0;
-        const harga = parseFloat(hargaInput.value) || 0;
-        totalInput.value = qty * harga;
+    function hitungTotalFifo() {
+        fifoNoticeContainer.style.display = 'none';
+        fifoNoticeContainer.innerHTML = '';
+
+        const selectedOption = produkSelect.options[produkSelect.selectedIndex];
+        if (!selectedOption || !selectedOption.value) {
+            return;
+        }
+
+        const totalStok = parseFloat(selectedOption.dataset.stok) || 0;
+        const batchesData = selectedOption.dataset.batches ? JSON.parse(selectedOption.dataset.batches) : [];
+        const qtyNeeded = parseInt(jumlahInput.value) || 0;
+
+        if (qtyNeeded <= 0) {
+            return;
+        }
+
+        if (qtyNeeded > totalStok) {
+            fifoNoticeContainer.style.display = 'block';
+            fifoNoticeContainer.innerHTML = `
+                <div class="alert alert-danger py-2 px-3 mb-0" style="font-size:0.85rem;">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <strong>Peringatan Stok:</strong> Jumlah transaksi (${qtyNeeded}) melebihi stok aktif yang tersedia (${totalStok}). Transaksi akan ditolak oleh sistem saat disimpan.
+                </div>`;
+        }
+
+        let remaining = qtyNeeded;
+        let totalHarga = 0;
+        let firstHargaSatuan = 0;
+        let allocatedBatches = [];
+
+        for (let i = 0; i < batchesData.length; i++) {
+            if (remaining <= 0) break;
+            let b = batchesData[i];
+            let avail = parseInt(b.qty || b.stok_tersisa) || 0;
+            if (avail <= 0) continue;
+
+            let deduct = Math.min(avail, remaining);
+            if (allocatedBatches.length === 0) {
+                firstHargaSatuan = parseFloat(b.harga_jual) || 0;
+            }
+
+            let subtotal = deduct * (parseFloat(b.harga_jual) || 0);
+            totalHarga += subtotal;
+
+            allocatedBatches.push({
+                stok_id: b.stok_id,
+                qty: deduct,
+                harga_jual: parseFloat(b.harga_jual) || 0,
+                subtotal: subtotal,
+                supplier: b.supplier || '-'
+            });
+
+            remaining -= deduct;
+        }
+
+        if (allocatedBatches.length > 0) {
+            hargaInput.value = firstHargaSatuan;
+            totalInput.value = totalHarga;
+        }
+
+        if (allocatedBatches.length > 1) {
+            let detailsHtml = allocatedBatches.map(b =>
+                `<li>Batch ID ${b.stok_id}: ${b.qty} unit × Rp ${b.harga_jual.toLocaleString('id-ID')} = Rp ${b.subtotal.toLocaleString('id-ID')} (${b.supplier})</li>`
+            ).join('');
+
+            if (qtyNeeded <= totalStok) {
+                fifoNoticeContainer.style.display = 'block';
+                fifoNoticeContainer.innerHTML = `
+                    <div class="alert alert-warning py-2 px-3 mb-0" style="font-size:0.85rem;">
+                        <i class="bi bi-layers-fill me-1"></i>
+                        <strong>Multi-Batch FIFO Detected:</strong> Transaksi ini mengambil stok dari <strong>${allocatedBatches.length} batch FIFO berbeda</strong>:
+                        <ul class="mb-0 mt-1 ps-3">${detailsHtml}</ul>
+                    </div>`;
+            }
+        }
     }
 
-    produkSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const harga = selectedOption.dataset.harga || 0;
-        if(harga) {
-            hargaInput.value = harga;
-        }
-        hitungTotal();
-    });
+    produkSelect.addEventListener('change', hitungTotalFifo);
+    jumlahInput.addEventListener('input', hitungTotalFifo);
 
-    jumlahInput.addEventListener('input', hitungTotal);
-    hargaInput.addEventListener('input', hitungTotal);
+    document.addEventListener('DOMContentLoaded', hitungTotalFifo);
 </script>
 @endpush

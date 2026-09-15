@@ -39,6 +39,29 @@ class TransaksiController extends Controller
         $produk    = Produk::where('status', 'Aktif')->orderBy('nama_produk')->get();
         $pelanggan = Pelanggan::where('status', 'Aktif')->orderBy('nama_pelanggan')->get();
         $karyawan  = Karyawan::orderBy('nama_lengkap')->get();
+
+        $activeBatches = Stok::with('supplier')
+            ->where('stok_tersisa', '>', 0)
+            ->orderBy('tanggal_masuk', 'asc')
+            ->orderBy('stok_id', 'asc')
+            ->get()
+            ->groupBy('produk_id');
+
+        foreach ($produk as $pr) {
+            $batches = $activeBatches->get($pr->produk_id, collect());
+            $pr->fifoBatches = $batches->map(function ($b) {
+                return [
+                    'stok_id'       => $b->stok_id,
+                    'qty'           => (int) $b->stok_tersisa,
+                    'stok_tersisa'  => (int) $b->stok_tersisa,
+                    'harga_jual'    => (float) $b->harga_jual,
+                    'harga_beli'    => (float) $b->harga_beli,
+                    'tanggal_masuk' => $b->tanggal_masuk ? $b->tanggal_masuk->format('Y-m-d H:i:s') : '',
+                    'supplier'      => $b->supplier ? $b->supplier->nama_supplier : '-',
+                ];
+            })->values();
+        }
+
         return view('transaksi.create', compact('kode', 'produk', 'pelanggan', 'karyawan'));
     }
 
@@ -50,15 +73,18 @@ class TransaksiController extends Controller
             'karyawan_id'        => ['required', 'exists:karyawan,karyawan_id'],
             'tanggal_transaksi'  => ['required', 'date'],
             'jumlah'             => ['required', 'integer', 'min:1'],
-            'harga_satuan'       => ['required', 'numeric', 'min:0'],
-            'total_harga'        => ['required', 'numeric', 'min:0'],
             'metode_pembayaran'  => ['required', 'in:Cash,Transfer,QRIS,E-Wallet'],
             'status'             => ['required', 'in:Pending,Selesai,Batal'],
         ]);
 
         try {
             DB::transaction(function () use ($validated) {
+                $preview = $this->calculateFifoPreview((int) $validated['produk_id'], (int) $validated['jumlah']);
+
                 $validated['kode_transaksi'] = $this->generateKode();
+                $validated['harga_satuan']   = $preview['harga_satuan'];
+                $validated['total_harga']    = $preview['total_harga'];
+
                 $transaksi = Transaksi::create($validated);
 
                 if ($transaksi->status === 'Selesai') {
@@ -83,6 +109,29 @@ class TransaksiController extends Controller
         $produk    = Produk::where('status', 'Aktif')->orderBy('nama_produk')->get();
         $pelanggan = Pelanggan::where('status', 'Aktif')->orderBy('nama_pelanggan')->get();
         $karyawan  = Karyawan::orderBy('nama_lengkap')->get();
+
+        $activeBatches = Stok::with('supplier')
+            ->where('stok_tersisa', '>', 0)
+            ->orderBy('tanggal_masuk', 'asc')
+            ->orderBy('stok_id', 'asc')
+            ->get()
+            ->groupBy('produk_id');
+
+        foreach ($produk as $pr) {
+            $batches = $activeBatches->get($pr->produk_id, collect());
+            $pr->fifoBatches = $batches->map(function ($b) {
+                return [
+                    'stok_id'       => $b->stok_id,
+                    'qty'           => (int) $b->stok_tersisa,
+                    'stok_tersisa'  => (int) $b->stok_tersisa,
+                    'harga_jual'    => (float) $b->harga_jual,
+                    'harga_beli'    => (float) $b->harga_beli,
+                    'tanggal_masuk' => $b->tanggal_masuk ? $b->tanggal_masuk->format('Y-m-d H:i:s') : '',
+                    'supplier'      => $b->supplier ? $b->supplier->nama_supplier : '-',
+                ];
+            })->values();
+        }
+
         return view('transaksi.edit', compact('transaksi', 'produk', 'pelanggan', 'karyawan'));
     }
 
@@ -94,8 +143,6 @@ class TransaksiController extends Controller
             'karyawan_id'        => ['required', 'exists:karyawan,karyawan_id'],
             'tanggal_transaksi'  => ['required', 'date'],
             'jumlah'             => ['required', 'integer', 'min:1'],
-            'harga_satuan'       => ['required', 'numeric', 'min:0'],
-            'total_harga'        => ['required', 'numeric', 'min:0'],
             'metode_pembayaran'  => ['required', 'in:Cash,Transfer,QRIS,E-Wallet'],
             'status'             => ['required', 'in:Pending,Selesai,Batal'],
         ]);
@@ -109,6 +156,10 @@ class TransaksiController extends Controller
                 if ($oldStatus === 'Selesai') {
                     $this->revertFifoSales($transaksi);
                 }
+
+                $preview = $this->calculateFifoPreview((int) $validated['produk_id'], (int) $validated['jumlah']);
+                $validated['harga_satuan'] = $preview['harga_satuan'];
+                $validated['total_harga']  = $preview['total_harga'];
 
                 // Explicitly exclude kode_transaksi to guarantee code immutability
                 $transaksi->update($validated);
@@ -141,6 +192,49 @@ class TransaksiController extends Controller
         }
     }
 
+    public function calculateFifoPreview(int $produkId, int $jumlah): array
+    {
+        $batches = Stok::where('produk_id', $produkId)
+            ->where('stok_tersisa', '>', 0)
+            ->orderBy('tanggal_masuk', 'asc')
+            ->orderBy('stok_id', 'asc')
+            ->get();
+
+        $remainingToDeduct = $jumlah;
+        $allocations       = [];
+        $totalHarga        = 0;
+        $firstHarga        = 0;
+
+        foreach ($batches as $batch) {
+            if ($remainingToDeduct <= 0) {
+                break;
+            }
+
+            $deductQty = min($batch->stok_tersisa, $remainingToDeduct);
+            if ($deductQty > 0) {
+                if (empty($allocations)) {
+                    $firstHarga = (float) $batch->harga_jual;
+                }
+                $subtotal = $deductQty * (float) $batch->harga_jual;
+                $totalHarga += $subtotal;
+                $allocations[] = [
+                    'stok_id'    => $batch->stok_id,
+                    'jumlah'     => $deductQty,
+                    'harga_jual' => (float) $batch->harga_jual,
+                    'subtotal'   => $subtotal,
+                ];
+                $remainingToDeduct -= $deductQty;
+            }
+        }
+
+        return [
+            'harga_satuan' => $firstHarga,
+            'total_harga'  => $totalHarga,
+            'allocations'  => $allocations,
+            'multi_batch'  => count($allocations) > 1,
+        ];
+    }
+
     private function processFifoSales(Transaksi $transaksi): void
     {
         $produkId  = $transaksi->produk_id;
@@ -160,6 +254,9 @@ class TransaksiController extends Controller
         }
 
         $remainingToDeduct = $qtyNeeded;
+        $totalHargaActual  = 0;
+        $firstHargaSatuan  = 0;
+        $isFirst           = true;
 
         foreach ($batches as $batch) {
             if ($remainingToDeduct <= 0) {
@@ -167,10 +264,20 @@ class TransaksiController extends Controller
             }
 
             $deductQty = min($batch->stok_tersisa, $remainingToDeduct);
+            if ($deductQty <= 0) {
+                continue;
+            }
+
+            if ($isFirst) {
+                $firstHargaSatuan = (float) $batch->harga_jual;
+                $isFirst = false;
+            }
+
             $batch->stok_tersisa -= $deductQty;
             $batch->save();
 
-            $subtotal = $deductQty * $batch->harga_jual;
+            $subtotal = $deductQty * (float) $batch->harga_jual;
+            $totalHargaActual += $subtotal;
 
             TransaksiBatch::create([
                 'transaksi_id' => $transaksi->transaksi_id,
@@ -183,6 +290,11 @@ class TransaksiController extends Controller
 
             $remainingToDeduct -= $deductQty;
         }
+
+        $transaksi->update([
+            'harga_satuan' => $firstHargaSatuan,
+            'total_harga'  => $totalHargaActual,
+        ]);
 
         // Sync total product stock from SUM(stok_tersisa)
         $newTotalStok = Stok::where('produk_id', $produkId)->sum('stok_tersisa');
